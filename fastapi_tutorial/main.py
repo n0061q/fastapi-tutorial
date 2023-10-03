@@ -1,27 +1,24 @@
-from fastapi import FastAPI
-from pydantic import BaseModel
+from typing import Annotated
+
+from fastapi import FastAPI, Query
 
 app = FastAPI()
 
 
-class Item(BaseModel):
-    name: str
-    description: str | None = None
-    price: float
-    tax: float | None = None
-
-
-@app.post("/items/")
-async def post_item(item: Item):
-    data = item.model_dump()
-    if item.tax:
-        data.update(price_with_tax=item.price + item.tax)
-    return data
-
-
-@app.put("/items/{item_id}")
-async def put_item(item_id: int, item: Item, q: str | None = None):
-    data = {"item_id": item_id, **item.model_dump()}
+@app.get("/items/")
+async def get_items(
+    q: Annotated[
+        str | None,
+        Query(
+            title="Query string",
+            description="Query string for the items to search in the database that have a good match",
+            alias="query",
+            # deprecated=True,
+            # include_in_schema=False,
+        ),
+    ]
+):
+    data = {"items": [{"item_id": "Foo"}, {"item_id": "Bar"}]}
     if q:
-        data.update(q=q)
+        data.update({"q": q})
     return data

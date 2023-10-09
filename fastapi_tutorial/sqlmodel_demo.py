@@ -94,21 +94,32 @@ def create_heroes_with_teams():
         h1 = Hero(name="Pepe", age=30, secret_name="Foo", team_id=t1.id)
         h2 = Hero(name="Reaper", secret_name="Death", team_id=t1.id)
         h3 = Hero(name="trololo", secret_name="ololo", team_id=t2.id)
+        h4 = Hero(name="Solo", secret_name="leave me alone")
 
         s.add(h1)
         s.add(h2)
         s.add(h3)
+        s.add(h4)
         s.commit()
+
+def select_heroes_with_teams():
+    with Session(engine) as s:
+        # statement = select(Hero, Team).where(Hero.team_id == Team.id)
+        statement = select(Hero, Team).join(Team, isouter=True)
+        results = s.exec(statement)
+        for hero, team in results:
+            print(f"{hero!r} --- {team!r}")
 
 
 def main():
     create_db_and_tables()
     # create_heroes()
-    create_heroes_with_teams()
-    select_heroes()
-    select_hero_with_name("Moroz")
+    # create_heroes_with_teams()
+    # select_heroes()
+    # select_hero_with_name("Moroz")
     # update_hero_with_id(100, age=100500)
-    update_hero_with_id(1, age=100500)
+    # update_hero_with_id(1, age=100500)
+    select_heroes_with_teams()
 
 
 

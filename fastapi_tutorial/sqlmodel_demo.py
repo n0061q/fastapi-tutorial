@@ -9,6 +9,13 @@ class Hero(SQLModel, table=True):
     name: str
     secret_name: str
     age: int | None = None
+    team_id: int | None = Field(default=None, foreign_key="team.id")
+
+
+class Team(SQLModel, table=True):
+    id: int | None = Field(primary_key=True, default=None)
+    name: str = Field(index=True)
+    headquarters: str
 
 
 def create_db_and_tables():
@@ -76,12 +83,34 @@ def update_hero_with_id(hero_id, secret_name=None, age=None):
         print(f"Updated hero: {h!r}")
 
 
+def create_heroes_with_teams():
+    with Session(engine) as s:
+        t1 = Team(name="DreamTeam", headquarters="DT HQ")
+        t2 = Team(name="LOLZ", headquarters="everywhere")
+        s.add(t1)
+        s.add(t2)
+        s.commit()
+
+        h1 = Hero(name="Pepe", age=30, secret_name="Foo", team_id=t1.id)
+        h2 = Hero(name="Reaper", secret_name="Death", team_id=t1.id)
+        h3 = Hero(name="trololo", secret_name="ololo", team_id=t2.id)
+
+        s.add(h1)
+        s.add(h2)
+        s.add(h3)
+        s.commit()
+
+
 def main():
     create_db_and_tables()
     # create_heroes()
+    create_heroes_with_teams()
     select_heroes()
     select_hero_with_name("Moroz")
-    update_hero_with_id(100, age=100500)
+    # update_hero_with_id(100, age=100500)
+    update_hero_with_id(1, age=100500)
+
+
 
 
 if __name__ == "__main__":

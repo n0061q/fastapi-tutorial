@@ -54,10 +54,34 @@ def select_heroes():
         print(f"Heroes in total: {len(results)}")
 
 
+def select_hero_with_name(name):
+    with Session(engine) as s:
+        hero = s.exec(select(Hero).where(Hero.name == name)).first()
+        print(f"Hero with name {name!r} is {hero!r}")
+
+
+def update_hero_with_id(hero_id, secret_name=None, age=None):
+    with Session(engine) as s:
+        h = s.get(Hero, hero_id)
+        assert h, f"No hero with id={hero_id}"
+
+        if secret_name:
+            h.secret_name = secret_name
+        if age:
+            h.age = age
+
+        s.add(h)
+        s.commit()
+        s.refresh(h)
+        print(f"Updated hero: {h!r}")
+
+
 def main():
     create_db_and_tables()
-    create_heroes()
+    # create_heroes()
     select_heroes()
+    select_hero_with_name("Moroz")
+    update_hero_with_id(100, age=100500)
 
 
 if __name__ == "__main__":

@@ -13,7 +13,7 @@ class Hero(SQLModel, table=True):
     age: int | None = None
     team_id: int | None = Field(default=None, foreign_key="team.id")
 
-    # Have to use Optional here - new syntax won't work
+    # Have to use Optional here - new syntax won't work ("Team" | None)
     # "Team" is a string because the Team class is not defined yet
     team: Optional["Team"] = Relationship(back_populates="heroes")
 
@@ -119,24 +119,30 @@ def create_heroes_with_teams():
         s.commit()
 
 
-def select_heroes_with_teams():
+def select_heroes_with_teams(with_rel_attrs=False):
     with Session(engine) as s:
-        # statement = select(Hero, Team).where(Hero.team_id == Team.id)
-        statement = select(Hero, Team).join(Team, isouter=True)
-        results = s.exec(statement)
-        for hero, team in results:
-            print(f"{hero!r} --- {team!r}")
+
+        if not with_rel_attrs:
+            # statement = select(Hero, Team).where(Hero.team_id == Team.id)
+            statement = select(Hero, Team).join(Team, isouter=True)
+            results = s.exec(statement)
+            for hero, team in results:
+                print(f"{hero!r}\n\t--- {team!r}")
+
+        else:
+            for h in s.exec(select(Hero)):
+                print(f"{h!r}\n\t--- {h.team!r}")
 
 
 def main():
     create_db_and_tables()
     # create_heroes()
-    create_heroes_with_teams()
+    # create_heroes_with_teams()
     # select_heroes()
     # select_hero_with_name("Moroz")
     # update_hero_with_id(100, age=100500)
     # update_hero_with_id(1, age=100500)
-    select_heroes_with_teams()
+    select_heroes_with_teams(with_rel_attrs=True)
 
 
 if __name__ == "__main__":

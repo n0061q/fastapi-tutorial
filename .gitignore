@@ -108,3 +108,5 @@ venv.bak/
 poetry.toml
 # generally it is a good idea to commit poetry.lock
 poetry.lock
+
+*.db

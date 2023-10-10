@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 uvicorn = {extras = ["standard"], version = "^0.23.2"}
 fastapi = "^0.103.2"
+sqlmodel = "^0.0.8"
 
 
 [build-system]

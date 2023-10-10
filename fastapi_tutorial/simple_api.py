@@ -4,17 +4,19 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select
 from fastapi import FastAPI
 
 
+DB_FILE_NAME = "database.db"
+
+
+engine = create_engine(
+    f"sqlite:///{DB_FILE_NAME}", echo=True, connect_args={"check_same_thread": False}
+)
+
+
 class Hero(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(index=True)
     secret_name: str
     age: int | None = Field(default=None, index=True)
-
-
-db_file_name = "database.db"
-engine = create_engine(
-    f"sqlite:///{db_file_name}", echo=True, connect_args={"check_same_thread": False}
-)
 
 
 def create_db_and_tables():
@@ -26,11 +28,11 @@ app = FastAPI()
 
 @app.on_event("startup")
 def on_startup():
-    # Path(db_file_name).unlink(missing_ok=True)
+    # Path(DB_FILE_NAME).unlink(missing_ok=True)
     create_db_and_tables()
 
 
-@app.post("/heroes/")
+@app.post("/heroes/", response_model=Hero)
 def create_hero(hero: Hero):
     with Session(engine) as s:
         s.add(hero)

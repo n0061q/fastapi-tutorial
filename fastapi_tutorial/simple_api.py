@@ -15,20 +15,19 @@ engine = create_engine(
 class HeroBase(SQLModel):
     name: str = Field(index=True)
     age: int | None = Field(default=None, index=True)
+    secret_name: str
 
 
 class Hero(HeroBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
-    secret_name: str
 
 
 class HeroCreate(HeroBase):
-    secret_name: str = ""
+    pass
 
 
 class HeroRead(HeroBase):
     id: int
-    secret_name: str
 
 
 def create_db_and_tables():

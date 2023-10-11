@@ -91,3 +91,14 @@ def update_hero(hero_id: int, hero_update: HeroUpdate):
 
         return hero
 
+
+@app.delete("/heroes/{hero_id}")
+def delete_hero(hero_id: int):
+    with Session(engine) as s:
+        hero = s.get(Hero, hero_id)
+        if not hero:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Hero not found")
+
+        s.delete(hero)
+        s.commit()
+        return {"ok": True}

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from sqlmodel import Field, Session, SQLModel, create_engine, select
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status, Query
 
 
 DB_FILE_NAME = "database.db"
@@ -55,6 +55,15 @@ def create_hero(hero: HeroCreate):
 
 
 @app.get("/heroes/", response_model=list[HeroRead])
-def read_heroes():
+def read_heroes(offset: int = 0, limit: int = Query(default=100, le=100)):
     with Session(engine) as s:
-        return s.exec(select(Hero)).all()
+        return s.exec(select(Hero).offset(offset).limit(limit)).all()
+
+
+@app.get("/heroes/{hero_id}", response_model=HeroRead)
+def read_hero(hero_id: int):
+    with Session(engine) as s:
+        hero = s.get(Hero, hero_id)
+        if not hero:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Hero not found")
+        return hero

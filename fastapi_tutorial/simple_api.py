@@ -12,11 +12,23 @@ engine = create_engine(
 )
 
 
-class Hero(SQLModel, table=True):
-    id: int | None = Field(default=None, primary_key=True)
+class HeroBase(SQLModel):
     name: str = Field(index=True)
-    secret_name: str
     age: int | None = Field(default=None, index=True)
+
+
+class Hero(HeroBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+    secret_name: str
+
+
+class HeroCreate(HeroBase):
+    secret_name: str = ""
+
+
+class HeroRead(HeroBase):
+    id: int
+    secret_name: str
 
 
 def create_db_and_tables():
@@ -32,16 +44,17 @@ def on_startup():
     create_db_and_tables()
 
 
-@app.post("/heroes/", response_model=Hero)
-def create_hero(hero: Hero):
+@app.post("/heroes/", response_model=HeroRead)
+def create_hero(hero: HeroCreate):
     with Session(engine) as s:
-        s.add(hero)
+        db_hero = Hero.from_orm(hero)
+        s.add(db_hero)
         s.commit()
-        s.refresh(hero)
-        return hero
+        s.refresh(db_hero)
+        return db_hero
 
 
-@app.get("/heroes/")
-def read_heroes() -> list[Hero]:
+@app.get("/heroes/", response_model=list[HeroRead])
+def read_heroes():
     with Session(engine) as s:
         return s.exec(select(Hero)).all()

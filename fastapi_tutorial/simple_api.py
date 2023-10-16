@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from pathlib import Path
 
 from sqlmodel import Field, Session, SQLModel, create_engine, select, Relationship
@@ -47,7 +47,7 @@ class HeroBase(SQLModel):
 class Hero(HeroBase, table=True):
     id: int | None = Field(default=None, primary_key=True)
 
-    team: int | None = Relationship(back_populates="heroes")
+    team: Optional["Team"] = Relationship(back_populates="heroes")
 
 
 class HeroCreate(HeroBase):
@@ -56,6 +56,10 @@ class HeroCreate(HeroBase):
 
 class HeroRead(HeroBase):
     id: int
+
+
+class HeroReadWithTeam(HeroRead):
+    team: Optional["TeamRead"] = None
 
 
 class HeroUpdate(SQLModel):
@@ -83,6 +87,10 @@ class TeamRead(TeamBase):
     id: int
 
 
+class TeamReadWithHeroes(TeamRead):
+    heroes: list[HeroRead] = []
+
+
 class TeamCreate(TeamBase):
     pass
 
@@ -90,6 +98,12 @@ class TeamCreate(TeamBase):
 class TeamUpdate(SQLModel):
     name: str | None = None
     headquarters: str | None = None
+
+
+# update ForwardRefs
+# I wonder why this is not done automatically in SQLModel
+
+HeroReadWithTeam.update_forward_refs()
 
 
 # Path operations for Heroes
@@ -106,12 +120,12 @@ def create_hero(session: DBSession, hero: HeroCreate):
 
 @app.get("/heroes/", response_model=list[HeroRead])
 def read_heroes(
-    session: DBSession, offset: int = 0, limit: int = Query(default=100, le=100)
+    session: DBSession, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100
 ):
     return session.exec(select(Hero).offset(offset).limit(limit)).all()
 
 
-@app.get("/heroes/{hero_id}", response_model=HeroRead)
+@app.get("/heroes/{hero_id}", response_model=HeroReadWithTeam)
 def read_hero(session: DBSession, hero_id: int):
     hero = session.get(Hero, hero_id)
     if not hero:
@@ -150,7 +164,7 @@ def delete_hero(session: DBSession, hero_id: int):
 # Path operations for Teams
 
 
-@app.post("/teams/", response_model=TeamBase)
+@app.post("/teams/", response_model=TeamRead)
 def create_team(session: DBSession, team: TeamCreate):
     db_team = Team.from_orm(team)
     session.add(db_team)
@@ -166,7 +180,7 @@ def read_teams(
     return session.exec(select(Team).offset(offset).limit(limit)).all()
 
 
-@app.get("/teams/{team_id}/", response_model=TeamRead)
+@app.get("/teams/{team_id}/", response_model=TeamReadWithHeroes)
 def read_team(session: DBSession, team_id: int):
     team = session.get(Team, team_id)
     if not team:

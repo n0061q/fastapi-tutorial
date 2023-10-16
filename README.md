@@ -16,5 +16,5 @@ https://sqlmodel.tiangolo.com/tutorial/fastapi/
 ## Run
 
 ```sh
-fastapi_tutorial.simple_api:app --reload
+fastapi_tutorial.simple_api.main:app --reload
 ```

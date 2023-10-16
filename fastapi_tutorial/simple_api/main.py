@@ -33,7 +33,9 @@ def create_hero(session: database.DBSession, hero: HeroCreate):
 
 @app.get("/heroes/", response_model=list[HeroRead])
 def read_heroes(
-    session: database.DBSession, offset: int = 0, limit: Annotated[int, Query(le=100)] = 100
+    session: database.DBSession,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=100)] = 100,
 ):
     return session.exec(select(Hero).offset(offset).limit(limit)).all()
 
@@ -88,7 +90,9 @@ def create_team(session: database.DBSession, team: TeamCreate):
 
 @app.get("/teams/", response_model=list[TeamRead])
 def read_teams(
-    session: database.DBSession, offset: int = 0, limit: Annotated[int, Query(le=100)] = 0
+    session: database.DBSession,
+    offset: int = 0,
+    limit: Annotated[int, Query(le=100)] = 100,
 ):
     return session.exec(select(Team).offset(offset).limit(limit)).all()
 
@@ -112,3 +116,14 @@ def update_team(session: database.DBSession, team_id: int, team: TeamUpdate):
     session.commit()
     session.refresh(db_team)
     return db_team
+
+
+@app.delete("/teams/{team_id}")
+def delete_team(session: database.DBSession, team_id: int):
+    team = session.get(Team, team_id)
+    if not team:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team not found")
+
+    session.delete(team)
+    session.commit()
+    return {"ok": True}

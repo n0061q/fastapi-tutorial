@@ -1,7 +1,7 @@
 from typing import Annotated
 from pathlib import Path
 
-from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlmodel import Field, Session, SQLModel, create_engine, select, Relationship
 from fastapi import FastAPI, HTTPException, status, Query, Depends
 
 
@@ -11,30 +11,6 @@ DB_FILE_NAME = "database.db"
 engine = create_engine(
     f"sqlite:///{DB_FILE_NAME}", echo=True, connect_args={"check_same_thread": False}
 )
-
-
-class HeroBase(SQLModel):
-    name: str = Field(index=True)
-    age: int | None = Field(default=None, index=True)
-    secret_name: str
-
-
-class Hero(HeroBase, table=True):
-    id: int | None = Field(default=None, primary_key=True)
-
-
-class HeroCreate(HeroBase):
-    pass
-
-
-class HeroRead(HeroBase):
-    id: int
-
-
-class HeroUpdate(SQLModel):
-    name: str | None = None
-    age: int | None = None
-    secret_name: str | None = None
 
 
 def create_db_and_tables():
@@ -58,6 +34,67 @@ def on_startup():
     create_db_and_tables()
 
 
+# Hero models
+
+
+class HeroBase(SQLModel):
+    name: str = Field(index=True)
+    age: int | None = Field(default=None, index=True)
+    secret_name: str
+    team_id: int | None = Field(default=None, foreign_key="team.id")
+
+
+class Hero(HeroBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    team: int | None = Relationship(back_populates="heroes")
+
+
+class HeroCreate(HeroBase):
+    pass
+
+
+class HeroRead(HeroBase):
+    id: int
+
+
+class HeroUpdate(SQLModel):
+    name: str | None = None
+    age: int | None = None
+    secret_name: str | None = None
+    team_id: int | None = None
+
+
+# Team models
+
+
+class TeamBase(SQLModel):
+    name: str = Field(index=True)
+    headquarters: str
+
+
+class Team(TeamBase, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    heroes: list[Hero] = Relationship(back_populates="team")
+
+
+class TeamRead(TeamBase):
+    id: int
+
+
+class TeamCreate(TeamBase):
+    pass
+
+
+class TeamUpdate(SQLModel):
+    name: str | None = None
+    headquarters: str | None = None
+
+
+# Path operations for Heroes
+
+
 @app.post("/heroes/", response_model=HeroRead)
 def create_hero(session: DBSession, hero: HeroCreate):
     db_hero = Hero.from_orm(hero)
@@ -68,7 +105,9 @@ def create_hero(session: DBSession, hero: HeroCreate):
 
 
 @app.get("/heroes/", response_model=list[HeroRead])
-def read_heroes(session: DBSession, offset: int = 0, limit: int = Query(default=100, le=100)):
+def read_heroes(
+    session: DBSession, offset: int = 0, limit: int = Query(default=100, le=100)
+):
     return session.exec(select(Hero).offset(offset).limit(limit)).all()
 
 
@@ -106,3 +145,43 @@ def delete_hero(session: DBSession, hero_id: int):
     session.delete(hero)
     session.commit()
     return {"ok": True}
+
+
+# Path operations for Teams
+
+
+@app.post("/teams/", response_model=TeamBase)
+def create_team(session: DBSession, team: TeamCreate):
+    db_team = Team.from_orm(team)
+    session.add(db_team)
+    session.commit()
+    session.refresh(db_team)
+    return db_team
+
+
+@app.get("/teams/", response_model=list[TeamRead])
+def read_teams(
+    session: DBSession, offset: int = 0, limit: Annotated[int, Query(le=100)] = 0
+):
+    return session.exec(select(Team).offset(offset).limit(limit)).all()
+
+
+@app.get("/teams/{team_id}/", response_model=TeamRead)
+def read_team(session: DBSession, team_id: int):
+    team = session.get(Team, team_id)
+    if not team:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team not found")
+    return team
+
+
+@app.patch("/teams/{team_id}/", response_model=TeamRead)
+def update_team(session: DBSession, team_id: int, team: TeamUpdate):
+    db_team = session.get(Team, team_id)
+    if not db_team:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team not found")
+    for key, value in team.dict(exclude_unset=True):
+        setattr(db_team, key, value)
+    session.add(db_team)
+    session.commit()
+    session.refresh(db_team)
+    return db_team
